@@ -19,3 +19,7 @@
 
 # Go workspace file
 go.work
+.env
+dados/dados_utf8.csv
+dados/dados.csv
+.vscode/launch.json
