@@ -31,27 +31,22 @@ func main() {
 		log.Fatalf("Arquivo de configuracao .env nao encontrado: %s", err)
 	}
 
-	baixarFTP := os.Getenv("BAIXAR_FTP")
+	err = downloadFTP()
+	if err != nil {
+		log.Fatalf("Erro ao baixar arquivo: %s", err)
+	}
 
-	if baixarFTP == "true" {
+	err = UnZip(os.Getenv("ARQUIVO"), "dados", "/")
+	if err != nil {
+		log.Fatalf("Erro ao descompactar: %s", err)
+	}
 
-		err = downloadFTP()
-		if err != nil {
-			log.Fatalf("Erro ao baixar arquivo: %s", err)
-		}
+	os.Rename("dados/tgg_export_caepi.txt", "dados/dados.csv")
 
-		err = UnZip(os.Getenv("ARQUIVO"), "dados", "/")
-		if err != nil {
-			log.Fatalf("Erro ao descompactar: %s", err)
-		}
-
-		os.Rename("dados/tgg_export_caepi.txt", "dados/dados.csv")
-
-		// Converte de WIN1252 -> UTF8
-		err = DecodeFile("dados/dados.csv", "dados/dados_utf8.csv")
-		if err != nil {
-			log.Fatalf("problem reading from file: %v", err)
-		}
+	// Converte de WIN1252 -> UTF8
+	err = DecodeFile("dados/dados.csv", "dados/dados_utf8.csv")
+	if err != nil {
+		log.Fatalf("problem reading from file: %v", err)
 	}
 
 	listaCAEPI, err := converteCSVparaCAEPI("dados/dados_utf8.csv")
@@ -312,6 +307,16 @@ func atualizaDadosCAEPITras(listaCAEPI []CAEPIRecord) error {
 	return nil
 }
 
+func atualizaDadosCAEPI2(listaCAEPI []CAEPIRecord) error {
+	port := 1521
+	connStr := go_ora.BuildUrl("server", port, "service_name", "username", "password", nil)
+	conn, err := sql.Open("oracle", connStr)
+	// check for error
+	err = conn.Ping()
+	// check for error
+	return nil
+}
+
 func atualizaDadosCAEPI(listaCAEPI []CAEPIRecord) error {
 	//https://godror.github.io/godror/doc/contents.html
 	//https://developer.oracle.com/learn/technical-articles/way-to-go-on-oci-article4
@@ -367,6 +372,8 @@ func atualizaDadosCAEPI(listaCAEPI []CAEPIRecord) error {
 }
 
 func downloadFTP() error {
+	//Fazer o download apenas quando a data de alteração dos arquivos forem diferente (FTP x Local)
+
 	arquivo := os.Getenv("ARQUIVO")
 	caminho := os.Getenv("CAMINHO")
 	ftp_host := os.Getenv("FTP_HOST")
@@ -390,31 +397,42 @@ func downloadFTP() error {
 		return err
 	}
 
-	//TODO Compara o arquivo do FTP x o ultimo baixado, se nao houve mudanca encerrar o processo
 	UltAlteracao, err := c.GetTime(caminho + arquivo)
 	if err != nil {
-		fmt.Println("Erro ao obter ultima alteracao do arquivo:", arquivo, err)
+		fmt.Println("Erro ao obter data da ultima alteracao do arquivo no FTP:", arquivo, err)
 	}
 
-	fmt.Println("UltAlteracao: ", UltAlteracao.Format("2006-01-02 15:04:05"))
-
-	os.Exit(-1)
-	//Lista arquivos na raiz do FTP
-	//fmt.Println(c.NameList("/"))
-	//fmt.Println(c.NameList("/portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"))
-
-	// baixar arquivo
-	fmt.Println("Baixando arquivo... ()", arquivo)
-	r, err := c.Retr(caminho + arquivo)
+	// Obter informações sobre o arquivo
+	dataModificacao := time.Now()
+	info, err := os.Stat(arquivo)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+	} else {
+		// Obter a data de modificação do arquivo
+		dataModificacao = info.ModTime()
 	}
-	defer r.Close()
+	if dataModificacao.Local().Compare(UltAlteracao) != 0 {
+		//Lista arquivos na raiz do FTP
+		//fmt.Println(c.NameList("/"))
+		//fmt.Println(c.NameList("/portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"))
+		fmt.Println("Baixando arquivo... ()", arquivo)
+		r, err := c.Retr(caminho + arquivo)
+		if err != nil {
+			panic(err)
+		}
+		defer r.Close()
 
-	buf, err := io.ReadAll(r)
+		buf, err := io.ReadAll(r)
 
-	os.WriteFile(arquivo, buf, 0644)
-	fmt.Println("Download finalizado.")
+		os.WriteFile(arquivo, buf, 0644)
+		//alterar data de alteracao do arquivo do arquivo baixado
+		os.Chtimes(arquivo, UltAlteracao.Local(), UltAlteracao.Local())
+
+		fmt.Println("Download finalizado.")
+	} else {
+		fmt.Println("Arquivo do FTP está igual ao local, ignorando etapa de download...")
+	}
+
 	return nil
 }
 
