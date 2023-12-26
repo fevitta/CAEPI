@@ -27,7 +27,7 @@ func left(s string, maxSize int) string {
 	}
 }
 
-func converteCSVparaCAEPI(caminhoCSV string) ([]CAEPIRecord, error) {
+func ConverteCSVparaCAEPI(caminhoCSV string) ([]caepiRecord, error) {
 	fmt.Println("Abrindo arquivo:", caminhoCSV)
 	f, err := os.Open(caminhoCSV)
 	if err != nil {
@@ -48,14 +48,14 @@ func converteCSVparaCAEPI(caminhoCSV string) ([]CAEPIRecord, error) {
 		log.Fatal(err)
 	}
 
-	var listaCAEPI []CAEPIRecord
+	var listaCAEPI []caepiRecord
 	for i, line := range data {
 		//limitar regs para teste
 		// if i == 500 {
 		// 	break
 		// }
 		if i > 0 { // pular cabecalho
-			var rec CAEPIRecord
+			var rec caepiRecord
 			for j, field := range line {
 				switch j {
 				// O arquivo .csv possui inumeras linhas irregulares, ajustei um limite para cada campo
@@ -109,7 +109,7 @@ func converteCSVparaCAEPI(caminhoCSV string) ([]CAEPIRecord, error) {
 	return listaCAEPI, nil
 }
 
-func DecodeFile(sourceFile, destFile string) error {
+func decodeFile(sourceFile, destFile string) error {
 	// TODO - Melhoria, passar o charmap como parametro na funcao
 	file, err := os.Open(sourceFile)
 	if err != nil {
@@ -137,7 +137,7 @@ func DecodeFile(sourceFile, destFile string) error {
 	return scanner.Err()
 }
 
-func downloadFTP() error {
+func DownloadFTP() error {
 	//Fazer o download apenas quando a data de alteração dos arquivos forem diferente (FTP x Local)
 
 	arquivo := os.Getenv("ARQUIVO")
@@ -196,7 +196,7 @@ func downloadFTP() error {
 
 		fmt.Println("Download finalizado.")
 
-		err = UnZip(os.Getenv("ARQUIVO"), "dados", "/")
+		err = unzip(os.Getenv("ARQUIVO"), "dados", "/")
 		if err != nil {
 			log.Fatalf("Erro ao descompactar: %s", err)
 		}
@@ -204,7 +204,7 @@ func downloadFTP() error {
 		os.Rename("dados/tgg_export_caepi.txt", "dados/dados.csv")
 
 		// Converte de WIN1252 -> UTF8
-		err = DecodeFile("dados/dados.csv", "dados/dados_utf8.csv")
+		err = decodeFile("dados/dados.csv", "dados/dados_utf8.csv")
 		if err != nil {
 			log.Fatalf("problem reading from file: %v", err)
 		}
@@ -215,7 +215,7 @@ func downloadFTP() error {
 	return nil
 }
 
-func UnZip(src, dest, ignoreDir string) error {
+func unzip(src, dest, ignoreDir string) error {
 
 	reader, err := zip.OpenReader(src)
 	if err != nil {
@@ -277,7 +277,7 @@ func UnZip(src, dest, ignoreDir string) error {
 	return nil
 }
 
-type CAEPIRecord struct {
+type caepiRecord struct {
 	ID                     int
 	NRREGISTROCA           string
 	DATAVALIDADE           string
