@@ -27,7 +27,7 @@ func left(s string, maxSize int) string {
 	}
 }
 
-func ConverteCSVparaCAEPI(caminhoCSV string) ([]caepiRecord, error) {
+func ConverteCSVparaCAEPI(caminhoCSV string) ([]CaepiRecord, error) {
 	fmt.Println("Abrindo arquivo:", caminhoCSV)
 	f, err := os.Open(caminhoCSV)
 	if err != nil {
@@ -48,14 +48,14 @@ func ConverteCSVparaCAEPI(caminhoCSV string) ([]caepiRecord, error) {
 		log.Fatal(err)
 	}
 
-	var listaCAEPI []caepiRecord
+	var listaCAEPI []CaepiRecord
 	for i, line := range data {
 		//limitar regs para teste
 		// if i == 500 {
 		// 	break
 		// }
 		if i > 0 { // pular cabecalho
-			var rec caepiRecord
+			var rec CaepiRecord
 			for j, field := range line {
 				switch j {
 				// O arquivo .csv possui inumeras linhas irregulares, ajustei um limite para cada campo
@@ -277,7 +277,7 @@ func unzip(src, dest, ignoreDir string) error {
 	return nil
 }
 
-type caepiRecord struct {
+type CaepiRecord struct {
 	ID                     int
 	NRREGISTROCA           string
 	DATAVALIDADE           string
