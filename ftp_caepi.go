@@ -27,6 +27,8 @@ func left(s string, maxSize int) string {
 	}
 }
 
+// Converte cada linha do arquivo .csv para uma struct
+// O arquivo possui inumeras falhas de layout, por isso defini alguns limites para os campos texto
 func ConverteCSVparaCAEPI(caminhoCSV string) ([]CaepiRecord, error) {
 	fmt.Println("Abrindo arquivo:", caminhoCSV)
 	f, err := os.Open(caminhoCSV)
@@ -137,15 +139,39 @@ func decodeFile(sourceFile, destFile string) error {
 	return scanner.Err()
 }
 
+// Baixa o arquivo tgg_export_caepi.zip do FTP do CAEPI
+// https://www.gov.br/trabalho-e-emprego/pt-br/assuntos/inspecao-do-trabalho/seguranca-e-saude-no-trabalho/equipamentos-de-protecao-individual-epi/passo-a-passo-importar-dados-do-caepi.pdf
+// Após baixar o arquivo, descompacta e converte para UTF8
+// Todas as " são removidas do arquivo, muitas delas não possuem fechamento e o csvReader se perder
+// O arquivo só será baixado se o arquivo local for diferente (Verificado pela data de modificação)
+// Os arquivos serão gerados na pasta /dados
 func DownloadFTP() error {
-	//Fazer o download apenas quando a data de alteração dos arquivos forem diferente (FTP x Local)
-
 	arquivo := os.Getenv("ARQUIVO")
+	if arquivo == "" {
+		arquivo = "tgg_export_caepi.zip"
+	}
+
 	caminho := os.Getenv("CAMINHO")
+	if caminho == "" {
+		caminho = "ftp.mtps.gov.br"
+	}
+
 	ftp_host := os.Getenv("FTP_HOST")
+	if ftp_host == "" {
+		ftp_host = "ftp.mtps.gov.br"
+	}
 	ftp_port := os.Getenv("FTP_PORT")
+	if ftp_port == "" {
+		ftp_port = "21"
+	}
 	ftp_user := os.Getenv("FTP_USER")
+	if ftp_user == "" {
+		ftp_user = "anonymous"
+	}
 	ftp_pass := os.Getenv("FTP_PASS")
+	if ftp_pass == "" {
+		ftp_pass = "anonymous"
+	}
 
 	fmt.Println("Conectando ao FTP:", ftp_host)
 
@@ -165,11 +191,13 @@ func DownloadFTP() error {
 
 	UltAlteracao, err := c.GetTime(caminho + arquivo)
 	if err != nil {
-		fmt.Println("Erro ao obter data da ultima alteracao do arquivo no FTP:", arquivo, err)
+		fmt.Println("Erro ao obter data da ultima alteracao do arquivo no FTP:", caminho+arquivo, err)
+		UltAlteracao = time.Now()
 	}
 
 	// Obter informações sobre o arquivo
 	dataModificacao := time.Now()
+
 	info, err := os.Stat(arquivo)
 	if err != nil {
 		log.Println(err)
@@ -177,12 +205,13 @@ func DownloadFTP() error {
 		// Obter a data de modificação do arquivo
 		dataModificacao = info.ModTime()
 	}
+
 	if dataModificacao.Local().Compare(UltAlteracao) != 0 {
 		//Lista arquivos na raiz do FTP
 		//fmt.Println(c.NameList("/"))
 		//fmt.Println(c.NameList("/portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"))
 		fmt.Println("Baixando arquivo... ()", arquivo)
-		r, err := c.Retr(caminho + arquivo)
+		r, err := c.Retr(arquivo)
 		if err != nil {
 			panic(err)
 		}
@@ -196,7 +225,7 @@ func DownloadFTP() error {
 
 		fmt.Println("Download finalizado.")
 
-		err = unzip(os.Getenv("ARQUIVO"), "dados", "/")
+		err = unzip(arquivo, "dados", "/")
 		if err != nil {
 			log.Fatalf("Erro ao descompactar: %s", err)
 		}
@@ -206,7 +235,7 @@ func DownloadFTP() error {
 		// Converte de WIN1252 -> UTF8
 		err = decodeFile("dados/dados.csv", "dados/dados_utf8.csv")
 		if err != nil {
-			log.Fatalf("problem reading from file: %v", err)
+			log.Fatalf("Erro ao converter arquivo para UTF: %v", err)
 		}
 	} else {
 		fmt.Println("Arquivo do FTP está igual ao local, ignorando etapa de download...")
