@@ -25,6 +25,7 @@ import (
 	"github.com/fevitta/ftp_caepi"
 	"github.com/joho/godotenv"
 )
+
 func main() {
 	fmt.Println("Iniciando...")
 
@@ -55,4 +56,5 @@ CAMINHO="portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"
 FTP_HOST="ftp.mtps.gov.br"
 FTP_PORT=21
 FTP_USER="anonymous"
-FTP_PASS="anonymous"```
+FTP_PASS="anonymous"
+```

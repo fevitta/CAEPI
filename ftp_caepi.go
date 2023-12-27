@@ -153,7 +153,7 @@ func DownloadFTP() error {
 
 	caminho := os.Getenv("CAMINHO")
 	if caminho == "" {
-		caminho = "ftp.mtps.gov.br"
+		caminho = "portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"
 	}
 
 	ftp_host := os.Getenv("FTP_HOST")
