@@ -119,7 +119,7 @@ func decodeFile(sourceFile, destFile string) error {
 	}
 	defer file.Close()
 
-	err = os.Remove(destFile)
+	_ = os.Remove(destFile)
 
 	newFile, err := os.Create(destFile)
 	if err != nil {
@@ -218,6 +218,9 @@ func DownloadFTP() error {
 		defer r.Close()
 
 		buf, err := io.ReadAll(r)
+		if err != nil {
+			log.Fatalf("Erro ao ler arquivo: %s", err)
+		}
 
 		os.WriteFile(arquivo, buf, 0644)
 		//alterar data de alteracao do arquivo do arquivo baixado
