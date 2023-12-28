@@ -211,7 +211,7 @@ func DownloadFTP() error {
 		//fmt.Println(c.NameList("/"))
 		//fmt.Println(c.NameList("/portal/fiscalizacao/seguranca-e-saude-no-trabalho/caepi/"))
 		fmt.Println("Baixando arquivo... ()", arquivo)
-		r, err := c.Retr(arquivo)
+		r, err := c.Retr(caminho + arquivo)
 		if err != nil {
 			panic(err)
 		}
